@@ -1,7 +1,7 @@
 {
   "name": "音骸スコア計算ツール",
   "short_name": "音骸スコア",
-  "description": "鳴潮 音骸スコア計算ツール Ver2.7",
+  "description": "鳴潮 音骸スコア計算ツール Ver3.4",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0d14",
