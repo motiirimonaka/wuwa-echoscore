@@ -115,7 +115,6 @@
   <button class="tab-btn" onclick="switchTab('odds')">オッズ計算</button>
 </div>
 
-<!-- Score Tab -->
 <div class="tab-panel active" id="tab-score">
 
   <div class="card">
@@ -132,7 +131,6 @@
     <div class="card-title">サブステータス入力</div>
     <div class="formula-box">クリ率×2 ＋ クリダメ ＋ 攻撃% ＋ 攻撃実数÷10 ＋ 固有値</div>
 
-    <!-- クリ率 -->
     <div class="stat-block">
       <div class="stat-block-label">
         <span>クリ率</span>
@@ -141,7 +139,6 @@
       <div class="val-grid" id="grid-critRate"></div>
     </div>
 
-    <!-- クリダメ -->
     <div class="stat-block">
       <div class="stat-block-label">
         <span>クリダメ</span>
@@ -150,7 +147,6 @@
       <div class="val-grid" id="grid-critDmg"></div>
     </div>
 
-    <!-- 攻撃% -->
     <div class="stat-block">
       <div class="stat-block-label">
         <span>攻撃%</span>
@@ -159,7 +155,6 @@
       <div class="val-grid" id="grid-atkPct"></div>
     </div>
 
-    <!-- 攻撃実数 -->
     <div class="stat-block">
       <div class="stat-block-label">
         <span>攻撃実数</span>
@@ -168,7 +163,6 @@
       <div class="val-grid" id="grid-atkFlat"></div>
     </div>
 
-    <!-- 固有値（キャラ依存・単一） -->
     <div class="stat-block" id="fixedStatBlock" style="display:none">
       <div class="stat-block-label">
         <span id="fixedStatBlockLabel">固有値 (%)</span>
@@ -177,7 +171,6 @@
       <div class="val-grid" id="grid-fixedStat"></div>
     </div>
 
-    <!-- 固有値（複合キャラ：2つ） -->
     <div id="multiFixedArea" style="display:none">
       <div class="stat-block" id="fixedStatBlock2a">
         <div class="stat-block-label">
@@ -214,7 +207,6 @@
 
 </div>
 
-<!-- Odds Tab -->
 <div class="tab-panel" id="tab-odds">
   <div class="card">
     <div class="card-title">強化オッズ計算</div>
@@ -230,7 +222,7 @@
       <span class="stat-unit"></span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">実際の成功率</span>
+      <span class="stat-label">Actual Rate</span>
       <input type="number" class="stat-input" id="actualRate" placeholder="例: 30" step="1" oninput="calcOdds()">
       <span class="stat-unit">%</span>
     </div>
@@ -244,22 +236,17 @@
 </div>
 
 <script>
-// ===== 値テーブル（画像より） =====
+// ===== 値テーブル =====
 const STAT_VALUES = {
   critRate: [6.3, 6.9, 7.5, 8.1, 8.7, 9.3, 9.9, 10.5],
   critDmg:  [12.6, 13.8, 15.0, 16.2, 17.4, 18.6, 19.8, 21.0],
   atkPct:   [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
-  atkFlat:  [30, 40, 50, 60, null, null, null, null],   // 1〜4のみ
-  // 固有値用（スキル・重撃・解放・通常 など共通：攻撃%と同じ刻み）
+  atkFlat:  [30, 40, 50, 60, null, null, null, null],
   pct:      [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
 };
 
 // ===== キャラデータ =====
-// type: 'single' → fixed1={stat, mult}
-// type: 'dual'   → fixed1={stat,mult}, fixed2={stat,mult}
-// type: 'none'   → 固有値なし
 const CHARAS = [
-  // 星5
   { name:'忌炎',      type:'single', fixed1:{stat:'重撃',   mult:0.7} },
   { name:'今汐',      type:'single', fixed1:{stat:'スキル', mult:0.8} },
   { name:'長離',      type:'single', fixed1:{stat:'スキル', mult:0.6} },
@@ -279,7 +266,6 @@ const CHARAS = [
   { name:'ユーノ',    type:'single', fixed1:{stat:'解放',   mult:0.8} },
   { name:'ガルブレーナ',type:'single',fixed1:{stat:'重撃',  mult:0.3} },
   { name:'仇遥',      type:'single', fixed1:{stat:'重撃',   mult:0.6} },
-  // 4★
   { name:'カカロ',    type:'single', fixed1:{stat:'解放',   mult:0.5} },
   { name:'アンコ',    type:'single', fixed1:{stat:'通常',   mult:0.5} },
   { name:'凌陽',      type:'dual',   fixed1:{stat:'通常',   mult:0.3}, fixed2:{stat:'スキル', mult:0.3} },
@@ -296,11 +282,9 @@ const CHARAS = [
   { name:'消滅主',    type:'dual',   fixed1:{stat:'通常',   mult:0.3}, fixed2:{stat:'解放',  mult:0.3} },
 ];
 
-// ===== 状態 =====
 let selectedChara = null;
 let selections = { critRate: null, critDmg: null, atkPct: null, atkFlat: null, fixed1: null, fixed2: null };
 
-// ===== グリッド描画 =====
 function renderValGrid(containerId, values, key, unit) {
   const grid = document.getElementById(containerId);
   grid.innerHTML = '';
@@ -316,7 +300,6 @@ function renderValGrid(containerId, values, key, unit) {
 }
 
 function updateLabel(key, v, unit) {
-  const labelMap = { critRate:'lbl-critRate', critDmg:'lbl-critDmg', atkPct:'lbl-atkPct', atkFlat:'lbl-atkFlat', fixed1:'lbl-fixedStat', fixed2a:'lbl-fixed2a', fixed2b:'lbl-fixed2b' };
   const id = key === 'fixed1' ? 'lbl-fixedStat' : key === 'fixed2a' ? 'lbl-fixed2a' : key === 'fixed2b' ? 'lbl-fixed2b' : 'lbl-' + key;
   const el = document.getElementById(id);
   if (!el) return;
@@ -330,7 +313,6 @@ function renderAllGrids() {
   renderValGrid('grid-atkFlat',  STAT_VALUES.atkFlat.filter(v=>v!==null), 'atkFlat', '実数');
 }
 
-// ===== キャラグリッド =====
 function renderCharaGrid() {
   const grid = document.getElementById('charaGrid');
   grid.innerHTML = '';
@@ -358,7 +340,6 @@ function selectChara(idx) {
   else label = 'なし';
   document.getElementById('fixedText').textContent = label;
 
-  // 固有値エリア切替
   selections.fixed1 = null; selections.fixed2 = null;
   selections.fixed2a = null; selections.fixed2b = null;
 
@@ -375,7 +356,6 @@ function selectChara(idx) {
     document.getElementById('fixedLabel2b').textContent = `${c.fixed2.stat} (%)`;
     document.getElementById('lbl-fixed2a').textContent = '未選択';
     document.getElementById('lbl-fixed2b').textContent = '未選択';
-    // 2a/2b を独立したキーで管理
     renderDualGrid('grid-fixed2a', 'fixed2a', c.fixed1.mult);
     renderDualGrid('grid-fixed2b', 'fixed2b', c.fixed2.mult);
   } else {
@@ -385,7 +365,6 @@ function selectChara(idx) {
   calcScore();
 }
 
-// dual用グリッド（fixed2a / fixed2b）
 function renderDualGrid(containerId, key, mult) {
   const grid = document.getElementById(containerId);
   grid.innerHTML = '';
@@ -404,7 +383,6 @@ function renderDualGrid(containerId, key, mult) {
   });
 }
 
-// ===== スコア計算 =====
 function calcScore() {
   const critRate = selections.critRate || 0;
   const critDmg  = selections.critDmg  || 0;
@@ -458,7 +436,6 @@ function calcScore() {
   document.getElementById('scoreBar').style.width = barPct + '%';
 }
 
-// ===== オッズ計算 =====
 function calcOdds() {
   const needed = parseFloat(document.getElementById('matNeeded').value) || 0;
   const cost   = parseFloat(document.getElementById('matCost').value)   || 0;
@@ -474,23 +451,21 @@ function calcOdds() {
   } else { judge.innerHTML = ''; }
 }
 
-// ===== タブ =====
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='score')||(i===1&&tab==='odds')));
   document.getElementById('tab-score').classList.toggle('active', tab==='score');
   document.getElementById('tab-odds').classList.toggle('active', tab==='odds');
 }
 
-// ===== 初期化 =====
 renderCharaGrid();
 renderAllGrids();
 </script>
-</body>
-</html>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('./sw.js');
   });
 }
 </script>
+</body>
+</html>
