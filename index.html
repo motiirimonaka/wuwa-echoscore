@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音骸スコア計算ツール</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4fc3f7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="音骸スコア">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+  :root {
+    --bg: #0a0d14; --surface: #111520; --surface2: #161c2e;
+    --border: #2a3050; --accent: #4fc3f7; --accent2: #7c4dff;
+    --gold: #ffd54f; --red: #ef5350; --green: #66bb6a;
+    --text: #e8eaf6; --muted: #7986cb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', sans-serif; min-height: 100vh; padding: 16px; }
+
+  .header { text-align: center; padding: 24px 0 20px; }
+  .header::before { content: ''; display: block; width: 60px; height: 2px; background: linear-gradient(90deg, transparent, var(--accent)); margin: 0 auto 12px; }
+  .header::after { content: ''; display: block; width: 60px; height: 2px; background: linear-gradient(90deg, var(--accent), transparent); margin: 12px auto 0; }
+  .header h1 { font-size: 22px; font-weight: 900; letter-spacing: .08em; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .header p { font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: .1em; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .card-title { font-size: 11px; font-weight: 700; letter-spacing: .15em; color: var(--accent); text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* キャラグリッド */
+  .chara-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .chara-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 4px; color: var(--text); font-size: 11px; font-family: inherit; cursor: pointer; text-align: center; transition: all .15s; line-height: 1.4; }
+  .chara-btn:hover { border-color: var(--accent); background: rgba(79,195,247,.08); }
+  .chara-btn.active { border-color: var(--accent); background: rgba(79,195,247,.15); color: var(--accent); font-weight: 700; }
+  .chara-btn .fixed-hint { display: block; font-size: 9px; color: var(--muted); margin-top: 2px; }
+  .chara-btn.active .fixed-hint { color: var(--accent); opacity: .7; }
+
+  /* ステータス行 */
+  .stat-block { margin-bottom: 14px; }
+  .stat-block-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .stat-block-label .cur-val { color: var(--gold); font-weight: 700; font-size: 13px; }
+
+  /* 値ボタングリッド */
+  .val-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+  .val-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 2px; color: var(--muted); font-size: 10px; font-family: inherit; cursor: pointer; text-align: center; transition: all .12s; line-height: 1.3; }
+  .val-btn:hover { border-color: var(--accent); color: var(--text); }
+  .val-btn.active { border-color: var(--accent); background: rgba(79,195,247,.18); color: var(--accent); font-weight: 700; }
+  .val-btn .tier { display: block; font-size: 8px; color: var(--muted); }
+  .val-btn.active .tier { color: var(--accent); opacity: .7; }
+
+  /* 固有値表示 */
+  .fixed-display { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+  .fixed-display .fixed-val { color: var(--gold); font-weight: 700; font-size: 13px; }
+
+  /* 固有値選択（複合キャラ用） */
+  .multi-fixed-area { margin-bottom: 14px; }
+  .multi-fixed-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .multi-fixed-label .cur-val { color: var(--gold); font-weight: 700; font-size: 13px; }
+
+  /* 結果 */
+  .result-card { background: linear-gradient(135deg,#111a30,#0d1525); border: 1px solid var(--accent); border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 12px; position: relative; overflow: hidden; }
+  .result-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+  .result-label { font-size: 10px; letter-spacing: .2em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .result-score { font-size: 56px; font-weight: 900; line-height: 1; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 4px; }
+  .result-rank { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+  .result-bar-bg { background: var(--surface); border-radius: 99px; height: 6px; overflow: hidden; margin: 0 10px; }
+  .result-bar { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent2), var(--accent)); transition: width .5s cubic-bezier(.4,0,.2,1); }
+
+  .breakdown { background: var(--surface2); border-radius: 10px; padding: 12px; margin-top: 12px; }
+  .breakdown-title { font-size: 10px; color: var(--muted); letter-spacing: .1em; margin-bottom: 8px; text-transform: uppercase; }
+  .breakdown-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-row .val { color: var(--gold); font-weight: 700; }
+
+  .rank-SS { color: #ff6f00; } .rank-S { color: var(--gold); } .rank-A { color: #9c27b0; } .rank-B { color: var(--accent); } .rank-C { color: var(--green); }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 14px; }
+  .tab-btn { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; color: var(--muted); font-size: 12px; font-family: inherit; cursor: pointer; transition: all .15s; font-weight: 500; }
+  .tab-btn.active { background: rgba(79,195,247,.12); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .tab-panel { display: none; } .tab-panel.active { display: block; }
+
+  .formula-box { background: rgba(79,195,247,.06); border: 1px solid rgba(79,195,247,.25); border-radius: 8px; padding: 10px 14px; font-size: 11px; color: var(--accent); text-align: center; margin-bottom: 14px; line-height: 1.8; }
+
+  .stat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .stat-label { font-size: 12px; color: var(--muted); width: 90px; flex-shrink: 0; }
+  .stat-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 14px; font-family: inherit; outline: none; transition: border-color .15s; }
+  .stat-input:focus { border-color: var(--accent); }
+  .stat-input::placeholder { color: #3a4060; }
+  .stat-unit { font-size: 12px; color: var(--muted); width: 16px; flex-shrink: 0; }
+
+  .odds-result { background: var(--surface2); border-radius: 10px; padding: 14px; text-align: center; }
+  .odds-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .odds-value { font-size: 28px; font-weight: 900; }
+  .odds-judge { margin-top: 8px; font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 99px; display: inline-block; }
+  .odds-ok { background: rgba(102,187,106,.15); color: var(--green); }
+  .odds-ng { background: rgba(239,83,80,.15); color: var(--red); }
+  .hint { font-size: 10px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+
+  .reset-btn { background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; color: var(--muted); font-size: 10px; font-family: inherit; cursor: pointer; }
+  .reset-btn:hover { border-color: var(--red); color: var(--red); }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>音骸スコア計算ツール</h1>
+  <p>鳴潮 WuWa · Ver 2.7</p>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('score')">スコア計算</button>
+  <button class="tab-btn" onclick="switchTab('odds')">オッズ計算</button>
+</div>
+
+<!-- Score Tab -->
+<div class="tab-panel active" id="tab-score">
+
+  <div class="card">
+    <div class="card-title">キャラクター選択</div>
+    <div class="chara-grid" id="charaGrid"></div>
+  </div>
+
+  <div class="fixed-display" id="fixedDisplay">
+    <span>固有値</span>
+    <span class="fixed-val" id="fixedText">キャラを選択してください</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title">サブステータス入力</div>
+    <div class="formula-box">クリ率×2 ＋ クリダメ ＋ 攻撃% ＋ 攻撃実数÷10 ＋ 固有値</div>
+
+    <!-- クリ率 -->
+    <div class="stat-block">
+      <div class="stat-block-label">
+        <span>クリ率</span>
+        <span class="cur-val" id="lbl-critRate">未選択</span>
+      </div>
+      <div class="val-grid" id="grid-critRate"></div>
+    </div>
+
+    <!-- クリダメ -->
+    <div class="stat-block">
+      <div class="stat-block-label">
+        <span>クリダメ</span>
+        <span class="cur-val" id="lbl-critDmg">未選択</span>
+      </div>
+      <div class="val-grid" id="grid-critDmg"></div>
+    </div>
+
+    <!-- 攻撃% -->
+    <div class="stat-block">
+      <div class="stat-block-label">
+        <span>攻撃%</span>
+        <span class="cur-val" id="lbl-atkPct">未選択</span>
+      </div>
+      <div class="val-grid" id="grid-atkPct"></div>
+    </div>
+
+    <!-- 攻撃実数 -->
+    <div class="stat-block">
+      <div class="stat-block-label">
+        <span>攻撃実数</span>
+        <span class="cur-val" id="lbl-atkFlat">未選択</span>
+      </div>
+      <div class="val-grid" id="grid-atkFlat"></div>
+    </div>
+
+    <!-- 固有値（キャラ依存・単一） -->
+    <div class="stat-block" id="fixedStatBlock" style="display:none">
+      <div class="stat-block-label">
+        <span id="fixedStatBlockLabel">固有値 (%)</span>
+        <span class="cur-val" id="lbl-fixedStat">未選択</span>
+      </div>
+      <div class="val-grid" id="grid-fixedStat"></div>
+    </div>
+
+    <!-- 固有値（複合キャラ：2つ） -->
+    <div id="multiFixedArea" style="display:none">
+      <div class="stat-block" id="fixedStatBlock2a">
+        <div class="stat-block-label">
+          <span id="fixedLabel2a">—</span>
+          <span class="cur-val" id="lbl-fixed2a">未選択</span>
+        </div>
+        <div class="val-grid" id="grid-fixed2a"></div>
+      </div>
+      <div class="stat-block" id="fixedStatBlock2b">
+        <div class="stat-block-label">
+          <span id="fixedLabel2b">—</span>
+          <span class="cur-val" id="lbl-fixed2b">未選択</span>
+        </div>
+        <div class="val-grid" id="grid-fixed2b"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="result-card">
+    <div class="result-label">ECHO SCORE</div>
+    <div class="result-score" id="scoreDisplay">—</div>
+    <div class="result-rank" id="rankDisplay">—</div>
+    <div class="result-bar-bg"><div class="result-bar" id="scoreBar" style="width:0%"></div></div>
+    <div class="breakdown" id="breakdown" style="display:none">
+      <div class="breakdown-title">内訳</div>
+      <div class="breakdown-row"><span>クリ率 × 2</span><span class="val" id="bd-crit">—</span></div>
+      <div class="breakdown-row"><span>クリダメ</span><span class="val" id="bd-critdmg">—</span></div>
+      <div class="breakdown-row"><span>攻撃%</span><span class="val" id="bd-atkpct">—</span></div>
+      <div class="breakdown-row"><span>攻撃実数 ÷ 10</span><span class="val" id="bd-atkflat">—</span></div>
+      <div class="breakdown-row" id="bd-fixed-row" style="display:none"><span id="bd-fixed-label">固有値</span><span class="val" id="bd-fixed">—</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Odds Tab -->
+<div class="tab-panel" id="tab-odds">
+  <div class="card">
+    <div class="card-title">強化オッズ計算</div>
+    <div class="formula-box">必要成功確率 ＝ 必要素材量 ÷ 更新に必要な素材消費量</div>
+    <div class="stat-row">
+      <span class="stat-label">必要素材量</span>
+      <input type="number" class="stat-input" id="matNeeded" placeholder="例: 50" step="1" oninput="calcOdds()">
+      <span class="stat-unit"></span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">素材消費量</span>
+      <input type="number" class="stat-input" id="matCost" placeholder="例: 100" step="1" oninput="calcOdds()">
+      <span class="stat-unit"></span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">実際の成功率</span>
+      <input type="number" class="stat-input" id="actualRate" placeholder="例: 30" step="1" oninput="calcOdds()">
+      <span class="stat-unit">%</span>
+    </div>
+    <div class="odds-result">
+      <div class="odds-label">必要成功確率</div>
+      <div class="odds-value" id="oddsValue" style="color:var(--accent)">—</div>
+      <div id="oddsJudge"></div>
+    </div>
+    <p class="hint">実際の成功率 ＞ 必要成功確率 → 強化推奨<br>期待値がプラスになるかどうかで判断します</p>
+  </div>
+</div>
+
+<script>
+// ===== 値テーブル（画像より） =====
+const STAT_VALUES = {
+  critRate: [6.3, 6.9, 7.5, 8.1, 8.7, 9.3, 9.9, 10.5],
+  critDmg:  [12.6, 13.8, 15.0, 16.2, 17.4, 18.6, 19.8, 21.0],
+  atkPct:   [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+  atkFlat:  [30, 40, 50, 60, null, null, null, null],   // 1〜4のみ
+  // 固有値用（スキル・重撃・解放・通常 など共通：攻撃%と同じ刻み）
+  pct:      [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+};
+
+// ===== キャラデータ =====
+// type: 'single' → fixed1={stat, mult}
+// type: 'dual'   → fixed1={stat,mult}, fixed2={stat,mult}
+// type: 'none'   → 固有値なし
+const CHARAS = [
+  // 星5
+  { name:'忌炎',      type:'single', fixed1:{stat:'重撃',   mult:0.7} },
+  { name:'今汐',      type:'single', fixed1:{stat:'スキル', mult:0.8} },
+  { name:'長離',      type:'single', fixed1:{stat:'スキル', mult:0.6} },
+  { name:'相里要',    type:'single', fixed1:{stat:'解放',   mult:0.6} },
+  { name:'ツバキ',    type:'single', fixed1:{stat:'通常',   mult:0.6} },
+  { name:'インリン',  type:'single', fixed1:{stat:'スキル', mult:0.5} },
+  { name:'折枝',      type:'single', fixed1:{stat:'通常',   mult:0.8} },
+  { name:'カルロッタ',type:'single', fixed1:{stat:'スキル', mult:0.8} },
+  { name:'ロココ',    type:'single', fixed1:{stat:'解放',   mult:0.6} },
+  { name:'フィービー',type:'single', fixed1:{stat:'重撃',   mult:0.4} },
+  { name:'カンタレラ',type:'single', fixed1:{stat:'通常',   mult:0.7} },
+  { name:'ザンニー',  type:'single', fixed1:{stat:'重撃',   mult:0.7} },
+  { name:'カルテジア',type:'dual',   fixed1:{stat:'解放',   mult:0.3}, fixed2:{stat:'通常', mult:0.3} },
+  { name:'ルバ',      type:'single', fixed1:{stat:'解放',   mult:0.7} },
+  { name:'フローヴァ',type:'single', fixed1:{stat:'スキル', mult:0.5} },
+  { name:'オーガスタ',type:'single', fixed1:{stat:'重撃',   mult:0.8} },
+  { name:'ユーノ',    type:'single', fixed1:{stat:'解放',   mult:0.8} },
+  { name:'ガルブレーナ',type:'single',fixed1:{stat:'重撃',  mult:0.3} },
+  { name:'仇遥',      type:'single', fixed1:{stat:'重撃',   mult:0.6} },
+  // 4★
+  { name:'カカロ',    type:'single', fixed1:{stat:'解放',   mult:0.5} },
+  { name:'アンコ',    type:'single', fixed1:{stat:'通常',   mult:0.5} },
+  { name:'凌陽',      type:'dual',   fixed1:{stat:'通常',   mult:0.3}, fixed2:{stat:'スキル', mult:0.3} },
+  { name:'気動主',    type:'single', fixed1:{stat:'スキル', mult:0.7} },
+  { name:'アールト',  type:'single', fixed1:{stat:'通常',   mult:0.4} },
+  { name:'シカ',      type:'dual',   fixed1:{stat:'スキル', mult:0.5}, fixed2:{stat:'解放', mult:0.3} },
+  { name:'タンキン',  type:'single', fixed1:{stat:'重撃',   mult:0.4} },
+  { name:'灯灯',      type:'single', fixed1:{stat:'通常',   mult:0.4} },
+  { name:'モルトフィー',type:'single',fixed1:{stat:'解放',  mult:0.6} },
+  { name:'散華',      type:'dual',   fixed1:{stat:'解放',   mult:0.3}, fixed2:{stat:'スキル', mult:0.3} },
+  { name:'桃折',      type:'single', fixed1:{stat:'解放',   mult:0.4}, note:'防御参照' },
+  { name:'シャコンヌ',type:'single', fixed1:{stat:'解放',   mult:0.3} },
+  { name:'回折主',    type:'dual',   fixed1:{stat:'解放',   mult:0.3}, fixed2:{stat:'スキル', mult:0.4} },
+  { name:'消滅主',    type:'dual',   fixed1:{stat:'通常',   mult:0.3}, fixed2:{stat:'解放',  mult:0.3} },
+];
+
+// ===== 状態 =====
+let selectedChara = null;
+let selections = { critRate: null, critDmg: null, atkPct: null, atkFlat: null, fixed1: null, fixed2: null };
+
+// ===== グリッド描画 =====
+function renderValGrid(containerId, values, key, unit) {
+  const grid = document.getElementById(containerId);
+  grid.innerHTML = '';
+  values.forEach((v, i) => {
+    if (v === null) return;
+    const btn = document.createElement('button');
+    btn.className = 'val-btn' + (selections[key] === v ? ' active' : '');
+    const disp = unit === '実数' ? v : v.toFixed(1) + '%';
+    btn.innerHTML = `${disp}<span class="tier">${i+1}</span>`;
+    btn.onclick = () => { selections[key] = v; renderValGrid(containerId, values, key, unit); updateLabel(key, v, unit); calcScore(); };
+    grid.appendChild(btn);
+  });
+}
+
+function updateLabel(key, v, unit) {
+  const labelMap = { critRate:'lbl-critRate', critDmg:'lbl-critDmg', atkPct:'lbl-atkPct', atkFlat:'lbl-atkFlat', fixed1:'lbl-fixedStat', fixed2a:'lbl-fixed2a', fixed2b:'lbl-fixed2b' };
+  const id = key === 'fixed1' ? 'lbl-fixedStat' : key === 'fixed2a' ? 'lbl-fixed2a' : key === 'fixed2b' ? 'lbl-fixed2b' : 'lbl-' + key;
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = unit === '実数' ? v : v.toFixed(1) + '%';
+}
+
+function renderAllGrids() {
+  renderValGrid('grid-critRate', STAT_VALUES.critRate, 'critRate', '%');
+  renderValGrid('grid-critDmg',  STAT_VALUES.critDmg,  'critDmg',  '%');
+  renderValGrid('grid-atkPct',   STAT_VALUES.atkPct,   'atkPct',   '%');
+  renderValGrid('grid-atkFlat',  STAT_VALUES.atkFlat.filter(v=>v!==null), 'atkFlat', '実数');
+}
+
+// ===== キャラグリッド =====
+function renderCharaGrid() {
+  const grid = document.getElementById('charaGrid');
+  grid.innerHTML = '';
+  CHARAS.forEach((c, i) => {
+    let hint = '';
+    if (c.type === 'single') hint = `${c.fixed1.stat}×${c.fixed1.mult}`;
+    else if (c.type === 'dual') hint = `${c.fixed1.stat}×${c.fixed1.mult}+${c.fixed2.stat}×${c.fixed2.mult}`;
+    else hint = 'なし';
+    const btn = document.createElement('button');
+    btn.className = 'chara-btn';
+    btn.innerHTML = `${c.name}<span class="fixed-hint">${hint}</span>`;
+    btn.onclick = () => selectChara(i);
+    grid.appendChild(btn);
+  });
+}
+
+function selectChara(idx) {
+  selectedChara = CHARAS[idx];
+  document.querySelectorAll('.chara-btn').forEach((b,j) => b.classList.toggle('active', j===idx));
+
+  const c = selectedChara;
+  let label = '';
+  if (c.type === 'single') label = `${c.fixed1.stat}×${c.fixed1.mult}${c.note?' ('+c.note+')':''}`;
+  else if (c.type === 'dual') label = `${c.fixed1.stat}×${c.fixed1.mult} ＋ ${c.fixed2.stat}×${c.fixed2.mult}`;
+  else label = 'なし';
+  document.getElementById('fixedText').textContent = label;
+
+  // 固有値エリア切替
+  selections.fixed1 = null; selections.fixed2 = null;
+  selections.fixed2a = null; selections.fixed2b = null;
+
+  if (c.type === 'single') {
+    document.getElementById('fixedStatBlock').style.display = 'block';
+    document.getElementById('multiFixedArea').style.display = 'none';
+    document.getElementById('fixedStatBlockLabel').textContent = `${c.fixed1.stat} (%)`;
+    document.getElementById('lbl-fixedStat').textContent = '未選択';
+    renderValGrid('grid-fixedStat', STAT_VALUES.pct, 'fixed1', '%');
+  } else if (c.type === 'dual') {
+    document.getElementById('fixedStatBlock').style.display = 'none';
+    document.getElementById('multiFixedArea').style.display = 'block';
+    document.getElementById('fixedLabel2a').textContent = `${c.fixed1.stat} (%)`;
+    document.getElementById('fixedLabel2b').textContent = `${c.fixed2.stat} (%)`;
+    document.getElementById('lbl-fixed2a').textContent = '未選択';
+    document.getElementById('lbl-fixed2b').textContent = '未選択';
+    // 2a/2b を独立したキーで管理
+    renderDualGrid('grid-fixed2a', 'fixed2a', c.fixed1.mult);
+    renderDualGrid('grid-fixed2b', 'fixed2b', c.fixed2.mult);
+  } else {
+    document.getElementById('fixedStatBlock').style.display = 'none';
+    document.getElementById('multiFixedArea').style.display = 'none';
+  }
+  calcScore();
+}
+
+// dual用グリッド（fixed2a / fixed2b）
+function renderDualGrid(containerId, key, mult) {
+  const grid = document.getElementById(containerId);
+  grid.innerHTML = '';
+  STAT_VALUES.pct.forEach((v, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'val-btn' + (selections[key] === v ? ' active' : '');
+    btn.innerHTML = `${v.toFixed(1)}%<span class="tier">${i+1}</span>`;
+    btn.onclick = () => {
+      selections[key] = v;
+      renderDualGrid(containerId, key, mult);
+      const lbl = document.getElementById(key==='fixed2a'?'lbl-fixed2a':'lbl-fixed2b');
+      if(lbl) lbl.textContent = v.toFixed(1)+'%';
+      calcScore();
+    };
+    grid.appendChild(btn);
+  });
+}
+
+// ===== スコア計算 =====
+function calcScore() {
+  const critRate = selections.critRate || 0;
+  const critDmg  = selections.critDmg  || 0;
+  const atkPct   = selections.atkPct   || 0;
+  const atkFlat  = selections.atkFlat  || 0;
+
+  let fixedVal = 0, fixedLabel = '';
+  const c = selectedChara;
+
+  if (c && c.type === 'single' && selections.fixed1 !== null) {
+    fixedVal = selections.fixed1 * c.fixed1.mult;
+    fixedLabel = `${c.fixed1.stat}×${c.fixed1.mult}`;
+    document.getElementById('bd-fixed-row').style.display = 'flex';
+    document.getElementById('bd-fixed-label').textContent = fixedLabel;
+  } else if (c && c.type === 'dual') {
+    const v1 = (selections.fixed2a || 0) * c.fixed1.mult;
+    const v2 = (selections.fixed2b || 0) * c.fixed2.mult;
+    fixedVal = v1 + v2;
+    fixedLabel = `${c.fixed1.stat}×${c.fixed1.mult}+${c.fixed2.stat}×${c.fixed2.mult}`;
+    document.getElementById('bd-fixed-row').style.display = 'flex';
+    document.getElementById('bd-fixed-label').textContent = fixedLabel;
+  } else {
+    document.getElementById('bd-fixed-row').style.display = 'none';
+  }
+
+  const bdCrit    = critRate * 2;
+  const bdCritDmg = critDmg;
+  const bdAtkPct  = atkPct;
+  const bdAtkFlat = atkFlat / 10;
+  const score = bdCrit + bdCritDmg + bdAtkPct + bdAtkFlat + fixedVal;
+
+  document.getElementById('bd-crit').textContent    = bdCrit.toFixed(1);
+  document.getElementById('bd-critdmg').textContent = bdCritDmg.toFixed(1);
+  document.getElementById('bd-atkpct').textContent  = bdAtkPct.toFixed(1);
+  document.getElementById('bd-atkflat').textContent = bdAtkFlat.toFixed(2);
+  document.getElementById('bd-fixed').textContent   = fixedVal.toFixed(2);
+
+  document.getElementById('scoreDisplay').textContent = score.toFixed(1);
+  document.getElementById('breakdown').style.display = 'block';
+
+  let rank, rankClass, barPct;
+  if      (score >= 50) { rank='SS'; rankClass='rank-SS'; barPct=Math.min(score/60*100,100); }
+  else if (score >= 40) { rank='S';  rankClass='rank-S';  barPct=score/60*100; }
+  else if (score >= 30) { rank='A';  rankClass='rank-A';  barPct=score/60*100; }
+  else if (score >= 20) { rank='B';  rankClass='rank-B';  barPct=score/60*100; }
+  else                  { rank='C';  rankClass='rank-C';  barPct=score/60*100; }
+
+  const rankEl = document.getElementById('rankDisplay');
+  rankEl.textContent = `ランク ${rank}`;
+  rankEl.className = `result-rank ${rankClass}`;
+  document.getElementById('scoreBar').style.width = barPct + '%';
+}
+
+// ===== オッズ計算 =====
+function calcOdds() {
+  const needed = parseFloat(document.getElementById('matNeeded').value) || 0;
+  const cost   = parseFloat(document.getElementById('matCost').value)   || 0;
+  const actual = parseFloat(document.getElementById('actualRate').value) || 0;
+  if (cost === 0) { document.getElementById('oddsValue').textContent='—'; document.getElementById('oddsJudge').innerHTML=''; return; }
+  const required = (needed / cost) * 100;
+  document.getElementById('oddsValue').textContent = required.toFixed(1) + '%';
+  const judge = document.getElementById('oddsJudge');
+  if (actual > 0) {
+    judge.innerHTML = actual > required
+      ? `<span class="odds-judge odds-ok">✓ 強化推奨 (実際 ${actual}% > 必要 ${required.toFixed(1)}%)</span>`
+      : `<span class="odds-judge odds-ng">✗ 強化非推奨 (実際 ${actual}% < 必要 ${required.toFixed(1)}%)</span>`;
+  } else { judge.innerHTML = ''; }
+}
+
+// ===== タブ =====
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='score')||(i===1&&tab==='odds')));
+  document.getElementById('tab-score').classList.toggle('active', tab==='score');
+  document.getElementById('tab-odds').classList.toggle('active', tab==='odds');
+}
+
+// ===== 初期化 =====
+renderCharaGrid();
+renderAllGrids();
+</script>
+</body>
+</html>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
+</script>
