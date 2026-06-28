@@ -1,8 +1,8 @@
 {
   "name": "音骸スコア計算ツール",
   "short_name": "音骸スコア",
-  "description": "鳴潮 音骸スコア計算ツール Ver3.4",
-  "start_url": "/",
+  "description": "鳴潮 音骸スコア計算ツール Ver2.7",
+  "start_url": "/wuwa-echoscore/",
   "display": "standalone",
   "background_color": "#0a0d14",
   "theme_color": "#4fc3f7",
