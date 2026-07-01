@@ -45,7 +45,7 @@
   .stat-block-label .cur-val { color: var(--gold); font-weight: 700; font-size: 13px; }
 
   /* 値ボタングリッド */
-  .val-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; }
+  .val-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
   .val-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 2px; color: var(--muted); font-size: 10px; font-family: inherit; cursor: pointer; text-align: center; transition: all .12s; line-height: 1.3; }
   .val-btn:hover { border-color: var(--accent); color: var(--text); }
   .val-btn.active { border-color: var(--accent); background: rgba(79,195,247,.18); color: var(--accent); font-weight: 700; }
@@ -129,7 +129,7 @@
 
   <div class="card">
     <div class="card-title">サブステータス入力</div>
-    <div class="formula-box">クリ率×2 ＋ クリダメ ＋ 攻撃%/防御%/HP% ＋ 実数÷10 ＋ 固有値</div>
+    <div class="formula-box">クリ率×2 ＋ クリダメ ＋ 攻撃% ＋ 攻撃実数÷10 ＋ 固有値</div>
 
     <div class="stat-block">
       <div class="stat-block-label">
@@ -149,7 +149,7 @@
 
     <div class="stat-block">
       <div class="stat-block-label">
-        <span>攻撃%/防御%/HP%</span>
+        <span>攻撃%</span>
         <span class="cur-val" id="lbl-atkPct">未選択</span>
       </div>
       <div class="val-grid" id="grid-atkPct"></div>
@@ -157,7 +157,7 @@
 
     <div class="stat-block">
       <div class="stat-block-label">
-        <span>攻撃実数/防御実数/HP実数</span>
+        <span>攻撃実数</span>
         <span class="cur-val" id="lbl-atkFlat">未選択</span>
       </div>
       <div class="val-grid" id="grid-atkFlat"></div>
@@ -199,8 +199,8 @@
       <div class="breakdown-title">内訳</div>
       <div class="breakdown-row"><span>クリ率 × 2</span><span class="val" id="bd-crit">—</span></div>
       <div class="breakdown-row"><span>クリダメ</span><span class="val" id="bd-critdmg">—</span></div>
-      <div class="breakdown-row"><span>攻撃%/防御%/HP%</span><span class="val" id="bd-atkpct">—</span></div>
-      <div class="breakdown-row"><span>攻撃実数/防御実数/HP実数 ÷ 10</span><span class="val" id="bd-atkflat">—</span></div>
+      <div class="breakdown-row"><span>攻撃%</span><span class="val" id="bd-atkpct">—</span></div>
+      <div class="breakdown-row"><span>攻撃実数 ÷ 10</span><span class="val" id="bd-atkflat">—</span></div>
       <div class="breakdown-row" id="bd-fixed-row" style="display:none"><span id="bd-fixed-label">固有値</span><span class="val" id="bd-fixed">—</span></div>
     </div>
   </div>
@@ -241,63 +241,12 @@ const STAT_VALUES = {
   critRate: [6.3, 6.9, 7.5, 8.1, 8.7, 9.3, 9.9, 10.5],
   critDmg:  [12.6, 13.8, 15.0, 16.2, 17.4, 18.6, 19.8, 21.0],
   atkPct:   [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
-  atkFlat:  [30, 40, 50, 60, null, null, null, null],
+  atkFlat:  [30, 40, 50, 60],
   pct:      [6.4, 7.1, 7.9, 8.6, 9.4, 10.1, 10.9, 11.6],
+  efficiency: [6.8, 7.6, 8.4, 9.2, 10.0, 10.8, 11.6, 12.4],
 };
 
-// ===== キャラデータ =====
-const CHARAS = [
-  { name:'カルロッタ', type:'single', fixed1:{stat:'スキル', mult:0.8}, attr:'凝縮' },
-  { name:'ルシラー', type:'single', fixed1:{stat:'通常', mult:0.6}, attr:'凝縮' },
-  { name:'緋雪', type:'single', fixed1:{stat:'解放', mult:0.7}, attr:'凝縮' },
-  { name:'折枝', type:'single', fixed1:{stat:'通常', mult:0.8}, attr:'凝縮' },
-  { name:'散華', type:'dual', fixed1:{stat:'解放', mult:0.3}, fixed2:{stat:'スキル', mult:0.3}, attr:'凝縮' },
-  { name:'凌陽', type:'dual', fixed1:{stat:'通常', mult:0.3}, fixed2:{stat:'スキル', mult:0.3}, attr:'凝縮' },
-  { name:'ブラント', type:'single', fixed1:{stat:'通常', mult:0.6}, attr:'焦熱' },
-  { name:'ルパ', type:'single', fixed1:{stat:'解放', mult:0.7}, attr:'焦熱' },
-  { name:'ガルブレーナ', type:'single', fixed1:{stat:'重撃', mult:0.3}, attr:'焦熱' },
-  { name:'モーニエ', type:'single', fixed1:{stat:'解放', mult:0.8}, attr:'焦熱' },
-  { name:'エイメス', type:'single', fixed1:{stat:'解放', mult:0.7}, attr:'焦熱' },
-  { name:'ダーニャ', type:'single', fixed1:{stat:'解放', mult:0.7}, attr:'焦熱' },
-  { name:'モルトフィー', type:'single', fixed1:{stat:'解放', mult:0.6}, attr:'焦熱' },
-  { name:'アンコ', type:'single', fixed1:{stat:'通常', mult:0.5}, attr:'焦熱' },
-  { name:'灯灯', type:'single', fixed1:{stat:'通常', mult:0.4}, attr:'焦熱' },
-  { name:'熾霞', type:'dual', fixed1:{stat:'スキル', mult:0.5}, fixed2:{stat:'解放', mult:0.3}, attr:'焦熱' },
-  { name:'長離', type:'single', fixed1:{stat:'スキル', mult:0.6}, attr:'焦熱' },
-  { name:'鑑心', type:'none', attr:'気動' },
-  { name:'カカロ', type:'single', fixed1:{stat:'解放', mult:0.5}, attr:'電導' },
-  { name:'吟霖', type:'single', fixed1:{stat:'スキル', mult:0.5}, attr:'電導' },
-  { name:'相里要', type:'single', fixed1:{stat:'解放', mult:0.6}, attr:'電導' },
-  { name:'オーガスタ', type:'single', fixed1:{stat:'重撃', mult:0.8}, attr:'電導' },
-  { name:'丹瑾', type:'single', fixed1:{stat:'重撃', mult:0.4}, attr:'消滅' },
-  { name:'レベッカ', type:'single', fixed1:{stat:'通常', mult:0.7}, attr:'電導' },
-  { name:'忌炎', type:'single', fixed1:{stat:'重撃', mult:0.7}, attr:'気動' },
-  { name:'ツバキ', type:'single', fixed1:{stat:'通常', mult:0.6}, attr:'消滅' },
-  { name:'アールト', type:'single', fixed1:{stat:'通常', mult:0.4}, attr:'気動' },
-  { name:'シャコンヌ', type:'single', fixed1:{stat:'解放', mult:0.3}, attr:'気動' },
-  { name:'気動主', type:'single', fixed1:{stat:'スキル', mult:0.7}, attr:'気動' },
-  { name:'カルテジア', type:'dual', fixed1:{stat:'解放', mult:0.3}, fixed2:{stat:'通常', mult:0.3}, attr:'気動' },
-  { name:'ユーノ', type:'single', fixed1:{stat:'解放', mult:0.8}, attr:'気動' },
-  { name:'仇遥', type:'single', fixed1:{stat:'重撃', mult:0.6}, attr:'気動' },
-  { name:'シグリカ', type:'none', attr:'気動' },
-  { name:'今汐', type:'single', fixed1:{stat:'スキル', mult:0.8}, attr:'回折' },
-  { name:'フィービー', type:'single', fixed1:{stat:'重撃', mult:0.4}, attr:'回折' },
-  { name:'ザンニー', type:'single', fixed1:{stat:'重撃', mult:0.7}, attr:'回折' },
-  { name:'ショアキーパー', type:'single', fixed1:{stat:'解放', mult:0.6}, attr:'回折' },
-  { name:'リンネー', type:'single', fixed1:{stat:'通常', mult:0.6}, attr:'回折' },
-  { name:'リューク・ヘルセン', type:'single', fixed1:{stat:'通常', mult:0.7}, attr:'回折' },
-  { name:'ルーシー', type:'single', fixed1:{stat:'重撃', mult:0.7}, attr:'回折' },
-  { name:'ヴェリーナ', type:'none', attr:'回折' },
-  { name:'回折主', type:'dual', fixed1:{stat:'解放', mult:0.3}, fixed2:{stat:'スキル', mult:0.4}, attr:'回折' },
-  { name:'ロココ', type:'single', fixed1:{stat:'重撃', mult:0.6}, attr:'消滅' },
-  { name:'カンタレラ', type:'single', fixed1:{stat:'通常', mult:0.7}, attr:'消滅' },
-  { name:'フローヴァ', type:'single', fixed1:{stat:'スキル', mult:0.5}, attr:'消滅' },
-  { name:'消滅主', type:'dual', fixed1:{stat:'通常', mult:0.3}, fixed2:{stat:'解放', mult:0.3}, attr:'消滅' },
-  { name:'千咲', type:'single', fixed1:{stat:'通常', mult:0.8}, attr:'消滅' },
-  { name:'桃折', type:'single', fixed1:{stat:'解放', mult:0.4}, note:'防御参照', attr:'消滅' }
-];
-
-
+// ===== 属性 =====
 const ATTR_ORDER = ['凝縮','焦熱','電導','気動','回折','消滅'];
 const ATTR_COLOR = {
   '凝縮':'#4fc3f7','焦熱':'#ff7043','電導':'#ce93d8',
@@ -305,133 +254,137 @@ const ATTR_COLOR = {
 };
 let currentAttrFilter = null;
 
+// ===== キャラデータ =====
+// type: 'single' (固有値1つ) / 'dual' (固有値2つ) / 'none' (固有値なし) / 'special' (特殊計算)
+const CHARAS = [
+  // ---- 凝縮 ----
+  { name:'カルロッタ', type:'single', fixed1:{stat:'スキル', mult:0.8}, attr:'凝縮' },
+  { name:'ルシラー',    type:'single', fixed1:{stat:'通常',   mult:0.8}, note:'結霜モダリティー', attr:'凝縮' },
+  { name:'緋雪',        type:'single', fixed1:{stat:'解放',   mult:0.7}, attr:'凝縮' },
+  { name:'折枝',        type:'single', fixed1:{stat:'通常',   mult:0.8}, attr:'凝縮' },
+  { name:'散華',        type:'dual',   fixed1:{stat:'解放',   mult:0.3}, fixed2:{stat:'スキル', mult:0.3}, attr:'凝縮' },
+  { name:'凌陽',        type:'dual',   fixed1:{stat:'通常',   mult:0.3}, fixed2:{stat:'スキル', mult:0.3}, attr:'凝縮' },
+
+  // ---- 焦熱 ----
+  { name:'ルパ',        type:'single', fixed1:{stat:'解放',   mult:0.7}, attr:'焦熱' },
+  { name:'ガルブレーナ',type:'single', fixed1:{stat:'重撃',   mult:0.3}, attr:'焦熱' },
+  { name:'モーニエ',    type:'special_moerner', attr:'焦熱', note:'固有値以外合計÷2+解放UP（防御参照）' },
+  { name:'エイメス',    type:'single', fixed1:{stat:'解放',   mult:0.7}, attr:'焦熱' },
+  { name:'ダーニャ',    type:'single', fixed1:{stat:'解放',   mult:0.6}, attr:'焦熱' },
+  { name:'モルトフィー',type:'single', fixed1:{stat:'解放',   mult:0.6}, attr:'焦熱' },
+  { name:'アンコ',      type:'single', fixed1:{stat:'通常',   mult:0.5}, attr:'焦熱' },
+  { name:'灯灯',        type:'single', fixed1:{stat:'通常',   mult:0.4}, attr:'焦熱' },
+  { name:'シカ',        type:'dual',   fixed1:{stat:'スキル', mult:0.5}, fixed2:{stat:'解放', mult:0.3}, attr:'焦熱' },
+  { name:'長離',        type:'single', fixed1:{stat:'スキル', mult:0.6}, attr:'焦熱' },
+  { name:'鑑心',        type:'none', attr:'焦熱' },
+
+  // ---- 電導 ----
+  { name:'カカロ',      type:'single', fixed1:{stat:'解放',   mult:0.5}, attr:'電導' },
+  { name:'相里要',      type:'single', fixed1:{stat:'解放',   mult:0.6}, attr:'電導' },
+  { name:'オーガスタ',  type:'single', fixed1:{stat:'重撃',   mult:0.8}, attr:'電導' },
+  { name:'レベッカ',    type:'single', fixed1:{stat:'通常',   mult:0.9}, attr:'電導' },
+  { name:'吟霖',        type:'single', fixed1:{stat:'スキル', mult:0.5}, attr:'電導' },
+
+  // ---- 気動 ----
+  { name:'忌炎',        type:'single', fixed1:{stat:'重撃',   mult:0.7}, attr:'気動' },
+  { name:'アールト',    type:'single', fixed1:{stat:'通常',   mult:0.4}, attr:'気動' },
+  { name:'タンキン',    type:'single', fixed1:{stat:'重撃',   mult:0.4}, attr:'気動' },
+  { name:'気動主',      type:'single', fixed1:{stat:'スキル', mult:0.7}, attr:'気動' },
+  { name:'カルテジア',  type:'dual',   fixed1:{stat:'解放',   mult:0.3}, fixed2:{stat:'通常', mult:0.3}, note:'HP参照 実数加算無し', attr:'気動' },
+  { name:'ユーノ',      type:'single', fixed1:{stat:'解放',   mult:0.8}, attr:'気動' },
+  { name:'仇遥',        type:'single', fixed1:{stat:'重撃',   mult:0.6}, attr:'気動' },
+  { name:'シグリカ',    type:'special_efficiency', mult:1.7, attr:'気動' },
+
+  // ---- 回折 ----
+  { name:'今汐',        type:'single', fixed1:{stat:'スキル', mult:0.8}, attr:'回折' },
+  { name:'フィービー',  type:'single', fixed1:{stat:'重撃',   mult:0.4}, attr:'回折' },
+  { name:'ザンニー',    type:'single', fixed1:{stat:'重撃',   mult:0.7}, attr:'回折' },
+  { name:'ショアキーパー',type:'single', fixed1:{stat:'解放', mult:0.6}, attr:'回折' },
+  { name:'リンネー',    type:'single', fixed1:{stat:'通常',   mult:0.6}, attr:'回折' },
+  { name:'リューク',    type:'single', fixed1:{stat:'通常',   mult:0.8}, attr:'回折' },
+  { name:'ルーシー',    type:'single', fixed1:{stat:'重撃',   mult:0.8}, attr:'回折' },
+  { name:'ヴェリーナ',  type:'none', attr:'回折' },
+  { name:'回折主',      type:'dual',   fixed1:{stat:'解放',   mult:0.3}, fixed2:{stat:'スキル', mult:0.4}, attr:'回折' },
+
+  // ---- 消滅 ----
+  { name:'ロココ',      type:'single', fixed1:{stat:'重撃',   mult:0.6}, attr:'消滅' },
+  { name:'カンタレラ',  type:'single', fixed1:{stat:'通常',   mult:0.7}, attr:'消滅' },
+  { name:'フローヴァ',  type:'single', fixed1:{stat:'スキル', mult:0.5}, attr:'消滅' },
+  { name:'消滅主',      type:'dual',   fixed1:{stat:'通常',   mult:0.3}, fixed2:{stat:'解放', mult:0.3}, attr:'消滅' },
+  { name:'千咲',        type:'single', fixed1:{stat:'通常',   mult:0.8}, attr:'消滅' },
+  { name:'桃折',        type:'single', fixed1:{stat:'解放',   mult:0.4}, note:'防御参照', attr:'消滅' },
+  { name:'ツバキ',      type:'single', fixed1:{stat:'通常',   mult:0.6}, attr:'消滅' },
+  { name:'丹瑾',        type:'single', fixed1:{stat:'重撃',   mult:0.4}, attr:'消滅' },
+];
+
 let selectedChara = null;
 let selections = { critRate: null, critDmg: null, atkPct: null, atkFlat: null, fixed1: null, fixed2: null };
 
+// ===== 値グリッド描画（なし付き） =====
 function renderValGrid(containerId, values, key, unit) {
   const grid = document.getElementById(containerId);
   grid.innerHTML = '';
-  // なしボタン
+
   const noneBtn = document.createElement('button');
   noneBtn.className = 'val-btn' + (selections[key] === null ? ' active' : '');
   noneBtn.innerHTML = 'なし<span class="tier">—</span>';
   noneBtn.onclick = () => {
     selections[key] = null;
     renderValGrid(containerId, values, key, unit);
-    const id = key === 'fixed1' ? 'lbl-fixedStat' : 'lbl-' + key;
-    const el = document.getElementById(id);
-    if (el) el.textContent = '未選択';
+    setLabelText(key, null, unit);
     calcScore();
   };
   grid.appendChild(noneBtn);
+
   values.forEach((v, i) => {
     if (v === null) return;
     const btn = document.createElement('button');
     btn.className = 'val-btn' + (selections[key] === v ? ' active' : '');
     const disp = unit === '実数' ? v : v.toFixed(1) + '%';
     btn.innerHTML = `${disp}<span class="tier">${i+1}</span>`;
-    btn.onclick = () => { selections[key] = v; renderValGrid(containerId, values, key, unit); updateLabel(key, v, unit); calcScore(); };
+    btn.onclick = () => {
+      selections[key] = v;
+      renderValGrid(containerId, values, key, unit);
+      setLabelText(key, v, unit);
+      calcScore();
+    };
     grid.appendChild(btn);
   });
 }
 
-function updateLabel(key, v, unit) {
-  const id = key === 'fixed1' ? 'lbl-fixedStat' : key === 'fixed2a' ? 'lbl-fixed2a' : key === 'fixed2b' ? 'lbl-fixed2b' : 'lbl-' + key;
+function setLabelText(key, v, unit) {
+  const idMap = { critRate:'lbl-critRate', critDmg:'lbl-critDmg', atkPct:'lbl-atkPct', atkFlat:'lbl-atkFlat', fixed1:'lbl-fixedStat' };
+  const id = idMap[key];
+  if (!id) return;
   const el = document.getElementById(id);
   if (!el) return;
-  el.textContent = unit === '実数' ? v : v.toFixed(1) + '%';
+  el.textContent = (v === null) ? '未選択' : (unit === '実数' ? v : v.toFixed(1) + '%');
 }
 
 function renderAllGrids() {
   renderValGrid('grid-critRate', STAT_VALUES.critRate, 'critRate', '%');
   renderValGrid('grid-critDmg',  STAT_VALUES.critDmg,  'critDmg',  '%');
   renderValGrid('grid-atkPct',   STAT_VALUES.atkPct,   'atkPct',   '%');
-  renderValGrid('grid-atkFlat',  STAT_VALUES.atkFlat.filter(v=>v!==null), 'atkFlat', '実数');
+  renderValGrid('grid-atkFlat',  STAT_VALUES.atkFlat,  'atkFlat',  '実数');
 }
 
-function renderCharaGrid() {
-  const container = document.getElementById('charaGrid');
-  container.innerHTML = '';
-
-  // 属性タブ
-  const tabWrap = document.createElement('div');
-  tabWrap.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;';
-  const allBtn = document.createElement('button');
-  allBtn.className = 'val-btn' + (currentAttrFilter === null ? ' active' : '');
-  allBtn.textContent = '全て';
-  allBtn.style.cssText = 'font-size:11px;padding:4px 8px;border-radius:6px;';
-  allBtn.onclick = () => { currentAttrFilter = null; renderCharaGrid(); };
-  tabWrap.appendChild(allBtn);
-  ATTR_ORDER.forEach(attr => {
-    const btn = document.createElement('button');
-    btn.className = 'val-btn' + (currentAttrFilter === attr ? ' active' : '');
-    btn.textContent = attr;
-    btn.style.cssText = `font-size:11px;padding:4px 8px;border-radius:6px;color:${ATTR_COLOR[attr]};`;
-    if (currentAttrFilter === attr) btn.style.borderColor = ATTR_COLOR[attr];
-    btn.onclick = () => { currentAttrFilter = attr; renderCharaGrid(); };
-    tabWrap.appendChild(btn);
-  });
-  container.appendChild(tabWrap);
-
-  // キャラグリッド
-  const grid = document.createElement('div');
-  grid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;';
-  const filtered = CHARAS.filter(c => currentAttrFilter === null || c.attr === currentAttrFilter);
-  filtered.forEach((c) => {
-    const globalIdx = CHARAS.indexOf(c);
-    let hint = '';
-    if (c.type === 'single') hint = `${c.fixed1.stat}×${c.fixed1.mult}`;
-    else if (c.type === 'dual') hint = `${c.fixed1.stat}×${c.fixed1.mult}+${c.fixed2.stat}×${c.fixed2.mult}`;
-    else hint = 'なし';
-    const btn = document.createElement('button');
-    btn.className = 'chara-btn';
-    btn.style.borderColor = ATTR_COLOR[c.attr] + '55';
-    btn.innerHTML = `${c.name}<span class="fixed-hint" style="color:${ATTR_COLOR[c.attr]}">${hint}</span>`;
-    btn.onclick = () => selectChara(globalIdx);
-    grid.appendChild(btn);
-  });
-  container.appendChild(grid);
-}
-
-function selectChara(idx) {
-  selectedChara = CHARAS[idx];
-  document.querySelectorAll('.chara-btn').forEach((b,j) => b.classList.toggle('active', j===idx));
-
-  const c = selectedChara;
-  let label = '';
-  if (c.type === 'single') label = `${c.fixed1.stat}×${c.fixed1.mult}${c.note?' ('+c.note+')':''}`;
-  else if (c.type === 'dual') label = `${c.fixed1.stat}×${c.fixed1.mult} ＋ ${c.fixed2.stat}×${c.fixed2.mult}`;
-  else label = 'なし';
-  document.getElementById('fixedText').textContent = label;
-
-  selections.fixed1 = null; selections.fixed2 = null;
-  selections.fixed2a = null; selections.fixed2b = null;
-
-  if (c.type === 'single') {
-    document.getElementById('fixedStatBlock').style.display = 'block';
-    document.getElementById('multiFixedArea').style.display = 'none';
-    document.getElementById('fixedStatBlockLabel').textContent = `${c.fixed1.stat} (%)`;
-    document.getElementById('lbl-fixedStat').textContent = '未選択';
-    renderValGrid('grid-fixedStat', STAT_VALUES.pct, 'fixed1', '%');
-  } else if (c.type === 'dual') {
-    document.getElementById('fixedStatBlock').style.display = 'none';
-    document.getElementById('multiFixedArea').style.display = 'block';
-    document.getElementById('fixedLabel2a').textContent = `${c.fixed1.stat} (%)`;
-    document.getElementById('fixedLabel2b').textContent = `${c.fixed2.stat} (%)`;
-    document.getElementById('lbl-fixed2a').textContent = '未選択';
-    document.getElementById('lbl-fixed2b').textContent = '未選択';
-    renderDualGrid('grid-fixed2a', 'fixed2a', c.fixed1.mult);
-    renderDualGrid('grid-fixed2b', 'fixed2b', c.fixed2.mult);
-  } else {
-    document.getElementById('fixedStatBlock').style.display = 'none';
-    document.getElementById('multiFixedArea').style.display = 'none';
-  }
-  calcScore();
-}
-
+// ===== dual用グリッド（fixed2a / fixed2b） =====
 function renderDualGrid(containerId, key, mult) {
   const grid = document.getElementById(containerId);
   grid.innerHTML = '';
+
+  const noneBtn = document.createElement('button');
+  noneBtn.className = 'val-btn' + (selections[key] === null ? ' active' : '');
+  noneBtn.innerHTML = 'なし<span class="tier">—</span>';
+  noneBtn.onclick = () => {
+    selections[key] = null;
+    renderDualGrid(containerId, key, mult);
+    const lbl = document.getElementById(key === 'fixed2a' ? 'lbl-fixed2a' : 'lbl-fixed2b');
+    if (lbl) lbl.textContent = '未選択';
+    calcScore();
+  };
+  grid.appendChild(noneBtn);
+
   STAT_VALUES.pct.forEach((v, i) => {
     const btn = document.createElement('button');
     btn.className = 'val-btn' + (selections[key] === v ? ' active' : '');
@@ -439,44 +392,177 @@ function renderDualGrid(containerId, key, mult) {
     btn.onclick = () => {
       selections[key] = v;
       renderDualGrid(containerId, key, mult);
-      const lbl = document.getElementById(key==='fixed2a'?'lbl-fixed2a':'lbl-fixed2b');
-      if(lbl) lbl.textContent = v.toFixed(1)+'%';
+      const lbl = document.getElementById(key === 'fixed2a' ? 'lbl-fixed2a' : 'lbl-fixed2b');
+      if (lbl) lbl.textContent = v.toFixed(1) + '%';
       calcScore();
     };
     grid.appendChild(btn);
   });
 }
 
+// ===== キャラグリッド（属性タブ付き） =====
+function renderCharaGrid() {
+  const container = document.getElementById('charaGrid');
+  container.innerHTML = '';
+
+  // 属性タブ
+  const tabWrap = document.createElement('div');
+  tabWrap.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'val-btn' + (currentAttrFilter === null ? ' active' : '');
+  allBtn.textContent = '全て';
+  allBtn.style.cssText = 'font-size:11px;padding:4px 8px;border-radius:6px;flex:0 0 auto;';
+  allBtn.onclick = () => { currentAttrFilter = null; renderCharaGrid(); };
+  tabWrap.appendChild(allBtn);
+
+  ATTR_ORDER.forEach(attr => {
+    const btn = document.createElement('button');
+    const isActive = currentAttrFilter === attr;
+    btn.className = 'val-btn' + (isActive ? ' active' : '');
+    btn.textContent = attr;
+    btn.style.cssText = `font-size:11px;padding:4px 8px;border-radius:6px;flex:0 0 auto;color:${ATTR_COLOR[attr]};`;
+    if (isActive) btn.style.borderColor = ATTR_COLOR[attr];
+    btn.onclick = () => { currentAttrFilter = attr; renderCharaGrid(); };
+    tabWrap.appendChild(btn);
+  });
+  container.appendChild(tabWrap);
+
+  // キャラグリッド本体（属性順に固定ソートしてから絞り込み）
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;';
+
+  const orderedCharas = CHARAS
+    .map((c, idx) => ({ c, idx }))
+    .sort((a, b) => ATTR_ORDER.indexOf(a.c.attr) - ATTR_ORDER.indexOf(b.c.attr));
+
+  const filtered = orderedCharas.filter(({c}) => currentAttrFilter === null || c.attr === currentAttrFilter);
+
+  filtered.forEach(({c, idx}) => {
+    let hint = '';
+    if (c.type === 'single') hint = `${c.fixed1.stat}×${c.fixed1.mult}`;
+    else if (c.type === 'dual') hint = `${c.fixed1.stat}×${c.fixed1.mult}+${c.fixed2.stat}×${c.fixed2.mult}`;
+    else if (c.type === 'special_moerner') hint = '固有値以外合計÷2+解放UP';
+    else if (c.type === 'special_efficiency') hint = `効率×${c.mult}`;
+    else hint = 'なし';
+
+    const btn = document.createElement('button');
+    btn.className = 'chara-btn';
+    btn.style.borderColor = ATTR_COLOR[c.attr] + '55';
+    btn.innerHTML = `${c.name}<span class="fixed-hint" style="color:${ATTR_COLOR[c.attr]}">${hint}</span>`;
+    btn.onclick = () => selectChara(idx);
+    grid.appendChild(btn);
+  });
+
+  container.appendChild(grid);
+}
+
+// ===== キャラ選択 =====
+function selectChara(idx) {
+  selectedChara = CHARAS[idx];
+  const c = selectedChara;
+
+  document.querySelectorAll('.chara-btn').forEach(b => b.classList.remove('active'));
+  // 選択ハイライトはグリッド再描画時に反映されないため、選択後に再描画して active 付与
+  renderCharaGrid();
+  // 該当ボタンにactiveを付ける（名前一致で判定）
+  document.querySelectorAll('.chara-btn').forEach(b => {
+    if (b.textContent.startsWith(c.name)) b.classList.add('active');
+  });
+
+  let label = '';
+  if (c.type === 'single') label = `${c.fixed1.stat}×${c.fixed1.mult}${c.note ? ' (' + c.note + ')' : ''}`;
+  else if (c.type === 'dual') label = `${c.fixed1.stat}×${c.fixed1.mult} ＋ ${c.fixed2.stat}×${c.fixed2.mult}${c.note ? ' (' + c.note + ')' : ''}`;
+  else if (c.type === 'special_moerner') label = c.note;
+  else if (c.type === 'special_efficiency') label = `効率×${c.mult}`;
+  else label = 'なし';
+  document.getElementById('fixedText').textContent = label;
+
+  // 選択状態リセット
+  selections.fixed1 = null;
+  selections.fixed2a = null;
+  selections.fixed2b = null;
+
+  const singleBlock = document.getElementById('fixedStatBlock');
+  const multiArea = document.getElementById('multiFixedArea');
+
+  if (c.type === 'single') {
+    singleBlock.style.display = 'block';
+    multiArea.style.display = 'none';
+    document.getElementById('fixedStatBlockLabel').textContent = `${c.fixed1.stat} (%)`;
+    document.getElementById('lbl-fixedStat').textContent = '未選択';
+    renderValGrid('grid-fixedStat', STAT_VALUES.pct, 'fixed1', '%');
+  } else if (c.type === 'dual') {
+    singleBlock.style.display = 'none';
+    multiArea.style.display = 'block';
+    document.getElementById('fixedLabel2a').textContent = `${c.fixed1.stat} (%)`;
+    document.getElementById('fixedLabel2b').textContent = `${c.fixed2.stat} (%)`;
+    document.getElementById('lbl-fixed2a').textContent = '未選択';
+    document.getElementById('lbl-fixed2b').textContent = '未選択';
+    renderDualGrid('grid-fixed2a', 'fixed2a', c.fixed1.mult);
+    renderDualGrid('grid-fixed2b', 'fixed2b', c.fixed2.mult);
+  } else if (c.type === 'special_efficiency') {
+    // 共鳴効率入力欄として fixedStatBlock を再利用
+    singleBlock.style.display = 'block';
+    multiArea.style.display = 'none';
+    document.getElementById('fixedStatBlockLabel').textContent = `共鳴効率 (%)`;
+    document.getElementById('lbl-fixedStat').textContent = '未選択';
+    renderValGrid('grid-fixedStat', STAT_VALUES.efficiency, 'fixed1', '%');
+  } else {
+    // none / special_moerner系は固有値の個別入力なし
+    singleBlock.style.display = 'none';
+    multiArea.style.display = 'none';
+  }
+
+  calcScore();
+}
+
+// ===== スコア計算 =====
 function calcScore() {
   const critRate = selections.critRate || 0;
   const critDmg  = selections.critDmg  || 0;
   const atkPct   = selections.atkPct   || 0;
   const atkFlat  = selections.atkFlat  || 0;
 
-  let fixedVal = 0, fixedLabel = '';
+  const bdCrit    = critRate * 2;
+  const bdCritDmg = critDmg;
+  const bdAtkPct  = atkPct;
+  const bdAtkFlat = atkFlat / 10;
+  const baseSum = bdCrit + bdCritDmg + bdAtkPct + bdAtkFlat;
+
+  let fixedVal = 0;
+  let fixedLabel = '';
   const c = selectedChara;
+  const bdFixedRow = document.getElementById('bd-fixed-row');
 
   if (c && c.type === 'single' && selections.fixed1 !== null) {
     fixedVal = selections.fixed1 * c.fixed1.mult;
     fixedLabel = `${c.fixed1.stat}×${c.fixed1.mult}`;
-    document.getElementById('bd-fixed-row').style.display = 'flex';
+    bdFixedRow.style.display = 'flex';
     document.getElementById('bd-fixed-label').textContent = fixedLabel;
   } else if (c && c.type === 'dual') {
     const v1 = (selections.fixed2a || 0) * c.fixed1.mult;
     const v2 = (selections.fixed2b || 0) * c.fixed2.mult;
     fixedVal = v1 + v2;
     fixedLabel = `${c.fixed1.stat}×${c.fixed1.mult}+${c.fixed2.stat}×${c.fixed2.mult}`;
-    document.getElementById('bd-fixed-row').style.display = 'flex';
+    bdFixedRow.style.display = 'flex';
+    document.getElementById('bd-fixed-label').textContent = fixedLabel;
+  } else if (c && c.type === 'special_moerner') {
+    // 固有値以外合計÷2 + 解放UP扱い（解放UPは攻撃%系に含まれているため簡易的に baseSum/2 とする）
+    fixedVal = baseSum / 2;
+    fixedLabel = '固有値以外合計÷2';
+    bdFixedRow.style.display = 'flex';
+    document.getElementById('bd-fixed-label').textContent = fixedLabel;
+  } else if (c && c.type === 'special_efficiency') {
+    fixedVal = (selections.fixed1 || 0) * c.mult;
+    fixedLabel = `共鳴効率×${c.mult}`;
+    bdFixedRow.style.display = 'flex';
     document.getElementById('bd-fixed-label').textContent = fixedLabel;
   } else {
-    document.getElementById('bd-fixed-row').style.display = 'none';
+    bdFixedRow.style.display = 'none';
   }
 
-  const bdCrit    = critRate * 2;
-  const bdCritDmg = critDmg;
-  const bdAtkPct  = atkPct;
-  const bdAtkFlat = atkFlat / 10;
-  const score = bdCrit + bdCritDmg + bdAtkPct + bdAtkFlat + fixedVal;
+  const score = baseSum + fixedVal;
 
   document.getElementById('bd-crit').textContent    = bdCrit.toFixed(1);
   document.getElementById('bd-critdmg').textContent = bdCritDmg.toFixed(1);
@@ -497,37 +583,50 @@ function calcScore() {
   const rankEl = document.getElementById('rankDisplay');
   rankEl.textContent = `ランク ${rank}`;
   rankEl.className = `result-rank ${rankClass}`;
-  document.getElementById('scoreBar').style.width = barPct + '%';
+  document.getElementById('scoreBar').style.width = Math.max(0, barPct) + '%';
 }
 
+// ===== オッズ計算 =====
 function calcOdds() {
   const needed = parseFloat(document.getElementById('matNeeded').value) || 0;
   const cost   = parseFloat(document.getElementById('matCost').value)   || 0;
   const actual = parseFloat(document.getElementById('actualRate').value) || 0;
-  if (cost === 0) { document.getElementById('oddsValue').textContent='—'; document.getElementById('oddsJudge').innerHTML=''; return; }
+
+  if (cost === 0) {
+    document.getElementById('oddsValue').textContent = '—';
+    document.getElementById('oddsJudge').innerHTML = '';
+    return;
+  }
+
   const required = (needed / cost) * 100;
   document.getElementById('oddsValue').textContent = required.toFixed(1) + '%';
+
   const judge = document.getElementById('oddsJudge');
   if (actual > 0) {
     judge.innerHTML = actual > required
       ? `<span class="odds-judge odds-ok">✓ 強化推奨 (実際 ${actual}% > 必要 ${required.toFixed(1)}%)</span>`
       : `<span class="odds-judge odds-ng">✗ 強化非推奨 (実際 ${actual}% < 必要 ${required.toFixed(1)}%)</span>`;
-  } else { judge.innerHTML = ''; }
+  } else {
+    judge.innerHTML = '';
+  }
 }
 
+// ===== タブ切替 =====
 function switchTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='score')||(i===1&&tab==='odds')));
-  document.getElementById('tab-score').classList.toggle('active', tab==='score');
-  document.getElementById('tab-odds').classList.toggle('active', tab==='odds');
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && tab === 'score') || (i === 1 && tab === 'odds'));
+  });
+  document.getElementById('tab-score').classList.toggle('active', tab === 'score');
+  document.getElementById('tab-odds').classList.toggle('active', tab === 'odds');
 }
 
+// ===== 初期化 =====
 renderCharaGrid();
 renderAllGrids();
-</script>
-<script>
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js');
+    navigator.serviceWorker.register('sw.js');
   });
 }
 </script>
